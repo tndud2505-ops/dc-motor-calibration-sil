@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DC Motor CALIBRATION SIL 과제 안내</title>
+  <style>
+    :root { color-scheme: light; --ink: #17212b; --muted: #5c6b77; --line: #dce4e8; --accent: #176b87; --soft: #eef7fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "Malgun Gothic", sans-serif; color: var(--ink); background: #f7fafb; line-height: 1.65; }
+    main { max-width: 980px; margin: 0 auto; padding: 56px 24px 80px; }
+    h1, h2 { line-height: 1.2; letter-spacing: -0.03em; }
+    h1 { max-width: 760px; margin: 0 0 18px; font-size: clamp(2rem, 5vw, 4rem); }
+    h2 { margin: 52px 0 16px; font-size: 1.65rem; }
+    p, li { max-width: 760px; }
+    .lead { color: var(--muted); font-size: 1.1rem; }
+    .rule { border-top: 1px solid var(--line); margin: 34px 0; }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: #fff; }
+    .flow > div { min-height: 130px; padding: 22px 18px; border-right: 1px solid var(--line); }
+    .flow > div:last-child { border-right: 0; }
+    .step { color: var(--accent); font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .flow strong { display: block; margin: 9px 0 5px; }
+    code { padding: 2px 5px; border-radius: 4px; background: #edf1f3; font-family: Consolas, monospace; font-size: .92em; }
+    pre { max-width: 760px; padding: 18px 20px; overflow-x: auto; color: #eaf5f7; background: #17212b; font: .92rem/1.7 Consolas, monospace; }
+    .note { max-width: 760px; padding: 16px 18px; border-left: 4px solid var(--accent); background: var(--soft); }
+    table { width: 100%; max-width: 760px; border-collapse: collapse; background: #fff; }
+    th, td { padding: 11px 13px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { width: 24%; color: var(--accent); background: #f0f7f9; }
+    @media (max-width: 720px) { .flow { grid-template-columns: 1fr; } .flow > div { border-right: 0; border-bottom: 1px solid var(--line); } .flow > div:last-child { border-bottom: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="step">Week 4 · DC Motor</p>
+    <h1>CALIBRATION을 제어 로직으로 옮기고 SIL로 검증하기</h1>
+    <p class="lead">모터 레지스터를 직접 만지는 코드와, 그 함수를 호출해 동작 순서를 결정하는 코드를 분리합니다. 같은 제어 로직을 가상 모터에서 먼저 검증한 뒤 MCU 예제에 연결합니다.</p>
+
+    <div class="rule"></div>
+    <h2>1. 과제 정의</h2>
+    <ul>
+      <li>초기 위치는 <code>1000</code>으로 시작합니다.</li>
+      <li>CCW Hall pulse는 현재 위치에 <code>+1</code>, CW Hall pulse는 <code>-1</code>을 반영합니다.</li>
+      <li><code>CALIBRATION</code> 명령을 받으면 CCW로 END POINT에 닿을 때까지 이동하고, 이어서 CW로 START POINT에 닿을 때까지 이동합니다.</li>
+      <li>목표 위치는 <code>START + (END - START) * percent / 100</code>입니다. <code>GET_ON=50%</code>, <code>GET_OFF=10%</code>입니다.</li>
+    </ul>
+
+    <h2>2. 동작 순서</h2>
+    <div class="flow" aria-label="CALIBRATION and GET_OFF sequence">
+      <div><span class="step">01</span><strong>초기화</strong><span>current_position = 1000</span></div>
+      <div><span class="step">02</span><strong>CALIBRATION</strong><span>CCW 이동 → END 저장 → CW 이동 → START 저장</span></div>
+      <div><span class="step">03</span><strong>GET_OFF</strong><span>START에서 END 방향으로 10% 이동</span></div>
+      <div><span class="step">04</span><strong>검증</strong><span>변수 출력과 종료 코드로 성공 판정</span></div>
+    </div>
+
+    <h2>3. 반드시 나눌 두 영역</h2>
+    <table>
+      <tr><th>펌웨어 / 하드웨어</th><td><code>FW_Motor_SetCCW</code>, <code>FW_Motor_SetCW</code>, <code>FW_Motor_Stop</code>, ADC, UART, EXTI, PWM 초기화처럼 레지스터를 직접 제어합니다.</td></tr>
+      <tr><th>제어 로직</th><td><code>CL_StartCalibration</code>, <code>CL_HandleCalibration</code>, <code>CL_StartMove</code>처럼 상태와 위치를 계산하고 펌웨어 함수를 호출합니다.</td></tr>
+    </table>
+    <p class="note">SIL에는 첫 번째 영역 대신 <code>sil_environment</code>의 가상 모터·Stopper·Hall callback이 들어갑니다. 따라서 제어 로직에 레지스터가 섞이면 SIL에서 재사용할 수 없습니다.</p>
+
+    <h2>4. 로컬 SIL 판정</h2>
+    <pre>sil/run-sil.bat       # Windows
+sil/run-sil.sh        # Linux/macOS/Git Bash
+
+calibration_complete=1
+start_point=980
+end_point=1020
+current_position=984
+target_position=984
+success=1</pre>
+    <p>프로그램은 <code>CALIBRATION → GET_OFF</code>을 자동 실행합니다. <code>success=1</code>이 출력되고 프로세스 종료 코드가 <code>0</code>이면 통과입니다.</p>
+
+    <h2>5. Git 제출</h2>
+    <pre>git checkout -b student/&lt;학번&gt;/week4-sil
+copy student/control_logic_template.c submissions/&lt;학번&gt;/control_logic.c
+sil\run-sil.bat submissions\&lt;학번&gt;\control_logic.c
+git add submissions/&lt;학번&gt;/control_logic.c
+git commit -m "Submit week 4 DC motor SIL"
+git push origin student/&lt;학번&gt;/week4-sil</pre>
+    <p>Push가 끝나면 원본 저장소로 Pull Request를 생성합니다. 리뷰에서는 컴파일 결과, 함수 영역 분리, CALIBRATION 순서, GET_OFF 목표 계산을 확인합니다.</p>
+  </main>
+</body>
+</html>
