@@ -1,5 +1,7 @@
 # DC Motor CALIBRATION SIL 과제
 
+공유 저장소: https://github.com/tndud2505-ops/dc-motor-calibration-sil
+
 이 저장소는 DC 모터 과제의 최종 구조를 MCU 코드와 호스트 SIL 코드로 나누어
 검증하기 위한 공개 예제입니다.
 
