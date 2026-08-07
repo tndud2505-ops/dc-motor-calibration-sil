@@ -12,13 +12,13 @@
 
 static int32_t physical_position;
 static uint32_t motor_direction;
-static uint32_t current_raw;
+static uint32_t sil_current_raw;
 
 void SIL_Init(void)
 {
     physical_position = 50;
     motor_direction = DIRECTION_STOP;
-    current_raw = 0u;
+    sil_current_raw = 0u;
 }
 
 void SIL_MotorCW(void)
@@ -51,16 +51,16 @@ void SIL_Tick(void)
 
     if (motor_direction == DIRECTION_STOP)
     {
-        current_raw = 0u;
+        sil_current_raw = 0u;
     }
     else if (physical_position == PHYSICAL_LOWER_POSITION ||
              physical_position == PHYSICAL_UPPER_POSITION)
     {
-        current_raw = STALL_CURRENT_RAW;
+        sil_current_raw = STALL_CURRENT_RAW;
     }
     else
     {
-        current_raw = NORMAL_CURRENT_RAW;
+        sil_current_raw = NORMAL_CURRENT_RAW;
     }
 
     ADC1_2_IRQHandler();
@@ -68,7 +68,7 @@ void SIL_Tick(void)
 
 uint32_t SIL_ReadCurrentRaw(void)
 {
-    return current_raw;
+    return sil_current_raw;
 }
 
 int32_t SIL_GetPhysicalPosition(void)
