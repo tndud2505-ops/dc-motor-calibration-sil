@@ -45,11 +45,12 @@
     </ul>
 
     <h2>2. 동작 순서</h2>
-    <div class="flow" aria-label="CALIBRATION and GET_OFF sequence">
+    <div class="flow" aria-label="CALIBRATION, GET_ON, GET_OFF and STOP sequence">
       <div><span class="step">01</span><strong>초기화</strong><span>current_position = 1000</span></div>
       <div><span class="step">02</span><strong>CALIBRATION</strong><span>CCW 이동 → END 저장 → CW 이동 → START 저장</span></div>
-      <div><span class="step">03</span><strong>GET_OFF</strong><span>START에서 END 방향으로 10% 이동</span></div>
-      <div><span class="step">04</span><strong>검증</strong><span>변수 출력과 종료 코드로 성공 판정</span></div>
+      <div><span class="step">03</span><strong>GET_OFF / GET_ON</strong><span>10% / 50% 목표 위치로 이동</span></div>
+      <div><span class="step">04</span><strong>STOP</strong><span>현재 위치에서 모터 정지</span></div>
+      <div><span class="step">05</span><strong>검증</strong><span>변수 출력과 종료 코드로 성공 판정</span></div>
     </div>
 
     <h2>3. 반드시 나눌 두 영역</h2>
@@ -66,10 +67,14 @@ sil/run-sil.sh        # Linux/macOS/Git Bash
 calibration_complete=1
 start_point=980
 end_point=1020
-current_position=984
+current_position=999
 target_position=984
+calibration_test=1
+get_off_test=1
+get_on_test=1
+stop_test=1
 success=1</pre>
-    <p>프로그램은 <code>CALIBRATION → GET_OFF</code>을 자동 실행합니다. <code>success=1</code>이 출력되고 프로세스 종료 코드가 <code>0</code>이면 통과입니다.</p>
+    <p>프로그램은 <code>CALIBRATION → GET_OFF → GET_ON → STOP</code>을 자동 실행합니다. 네 테스트가 모두 <code>1</code>이고 <code>success=1</code>이 출력되며 프로세스 종료 코드가 <code>0</code>이면 통과입니다.</p>
 
     <h2>5. Git 제출</h2>
     <pre>git checkout -b student/&lt;학번&gt;/week4-sil
