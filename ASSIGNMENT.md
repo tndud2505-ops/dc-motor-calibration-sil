@@ -6,6 +6,16 @@
 
 학생이 수정할 파일은 `sil_environment.c` 하나뿐입니다. 나머지 파일은 제공 코드이므로 수정하지 않습니다.
 
+실제 장비의 전류와 Stopper 조건은 수강생마다 동일하게 검증하기 어렵습니다. 따라서 이번 과제에서는 정밀한 모터 물리 모델보다 SIL의 기본 구조, 로컬 C 빌드, GitHub Push와 자동 빌드 경험을 우선합니다.
+
+## 과제 진행 순서
+
+1. GitHub 계정 없이 ZIP 파일을 내려받습니다.
+2. [LOCAL_BUILD.md](LOCAL_BUILD.md)에 따라 제공 예제를 로컬에서 빌드합니다.
+3. [SIL_GUIDE.md](SIL_GUIDE.md)를 읽고 `sil_environment.c`의 역할을 이해합니다.
+4. SIL 환경을 수정한 뒤 로컬에서 다시 빌드합니다.
+5. 마지막에 [GIT_SUBMISSION.md](GIT_SUBMISSION.md)를 따라 GitHub 계정을 만들고 학생 브랜치에 Push합니다.
+
 ## `sil_environment.c`에서 구현할 내용
 
 1. 가상 모터 위치
@@ -39,9 +49,9 @@
 
 ## 제출
 
-1. 저장소를 자신의 브랜치로 받습니다.
-2. `sil_environment.c`만 작성합니다.
-3. 로컬에서 `make run`을 실행합니다.
-4. 변경한 `sil_environment.c`를 커밋하고 Pull Request를 생성합니다.
+1. 로컬에서 `build-local.bat` 또는 `sh build-local.sh`를 실행합니다.
+2. GitHub 저장소에 `student/학번` 브랜치를 만듭니다.
+3. 변경한 `sil_environment.c`를 커밋하고 Push합니다.
+4. GitHub Actions의 `Build and run SIL` 로그를 확인합니다.
 
 GitHub Actions의 목적은 자동 채점이 아니라 코드가 PC에서 빌드되고 끝까지 실행되는지 확인하는 것입니다.
