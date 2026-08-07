@@ -293,5 +293,5 @@ target = LOWER + (UPPER - LOWER) × percent / 100
 - [ ] 끝단 구동 전류가 3200인가?
 - [ ] 매 tick 마지막에 `ADC1_2_IRQHandler()`를 호출하는가?
 - [ ] 제어 코드의 변수를 직접 참조하지 않는가?
-- [ ] `build-local.bat` 또는 `sh build-local.sh`로 빌드되는가?
+- [ ] Windows의 `build-local.bat` 또는 Linux/macOS의 `make run`으로 빌드되는가?
 - [ ] `code/main.c` 출력에서 CAL 완료와 목표 위치 값을 직접 확인했는가?

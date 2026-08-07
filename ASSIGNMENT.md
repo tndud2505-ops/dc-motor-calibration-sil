@@ -49,7 +49,7 @@
 
 ## 제출
 
-1. 로컬에서 `build-local.bat` 또는 `sh build-local.sh`를 실행합니다.
+1. Windows에서는 `build-local.bat`, Linux/macOS에서는 `make run`을 실행합니다.
 2. GitHub 저장소에 `student/학번` 브랜치를 만듭니다.
 3. 변경한 `code/sil_environment.c`를 커밋하고 Push합니다.
 4. GitHub Actions의 `Build and run SIL` 로그를 확인합니다.

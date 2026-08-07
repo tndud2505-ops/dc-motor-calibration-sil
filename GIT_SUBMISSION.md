@@ -1,6 +1,6 @@
 # 로컬 빌드 후 GitHub 제출 가이드
 
-이 문서는 `build-local.bat` 또는 `build-local.sh` 실행에 성공한 뒤 진행합니다. Git과 SIL을 한 번에 배우지 않고, 먼저 로컬 C 빌드를 확인한 다음 GitHub 제출을 연습합니다.
+이 문서는 Windows의 `build-local.bat` 또는 Linux/macOS의 `make run` 실행에 성공한 뒤 진행합니다. Git과 SIL을 한 번에 배우지 않고, 먼저 로컬 C 빌드를 확인한 다음 GitHub 제출을 연습합니다.
 
 ## 1. GitHub 계정 만들기
 
@@ -130,7 +130,7 @@ Windows에서는 다음 명령으로 다시 확인합니다.
 Linux 또는 macOS에서는 다음을 실행합니다.
 
 ```bash
-sh build-local.sh
+make run
 ```
 
 CAL, GET OFF, GET ON, STOP 출력이 끝까지 나오는지 확인합니다. 구현을 완료한 제출에서는 CAL 완료, GET OFF 10, GET ON 50 값도 함께 확인한 다음 Git에 기록합니다.

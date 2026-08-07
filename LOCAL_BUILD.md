@@ -22,13 +22,12 @@ code/
   main.c
   sil_api.h
 build-local.bat
-build-local.ps1
-build-local.sh
+Makefile
 ```
 
 ## 2. Windows에서 컴파일러 준비
 
-`build-local.bat`은 다음 순서로 컴파일러를 찾습니다.
+`build-local.bat` 하나가 다음 순서로 컴파일러를 찾아 직접 빌드합니다.
 
 1. Windows용 `gcc`
 2. Windows용 `clang`
@@ -74,12 +73,6 @@ Windows GCC 또는 Clang을 찾으면 `dc_motor_sil.exe`를 만들고 실행합�
 ## 4. Linux 또는 macOS에서 빌드 및 실행
 
 터미널에서 과제 폴더로 이동한 뒤 실행합니다.
-
-```bash
-sh build-local.sh
-```
-
-`make`가 설치되어 있다면 다음 명령도 같은 코드를 빌드합니다.
 
 ```bash
 make run

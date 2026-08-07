@@ -30,8 +30,6 @@ LOCAL_BUILD.md       GitHub 가입 전 로컬 빌드 설명
 SIL_GUIDE.md         SIL 환경 함수별 상세 구현 설명
 GIT_SUBMISSION.md    GitHub 계정 생성 후 브랜치 제출 설명
 build-local.bat      Windows 빌드 실행 파일
-build-local.ps1      Windows 컴파일러 또는 WSL 자동 선택
-build-local.sh       Linux/macOS 빌드 실행 파일
 ```
 
 ## 제어 사양
@@ -55,16 +53,10 @@ build-local.bat
 Linux 또는 macOS에서는 다음 명령을 실행합니다.
 
 ```bash
-sh build-local.sh
+make run
 ```
 
 컴파일러 준비부터 오류 확인까지는 [LOCAL_BUILD.md](LOCAL_BUILD.md)를 참고합니다.
-
-## Make를 사용하는 경우
-
-```bash
-make run
-```
 
 `code/main.c`는 CALIBRATION, GET OFF, GET ON, STOP 순서로 명령을 실행하고 변수만 출력합니다. 별도의 정답 판정 코드는 포함하지 않습니다. 따라서 GitHub Actions의 초록색 체크는 빌드와 실행 성공을 뜻하며 SIL 기능 완성을 자동으로 판정하지 않습니다.
 

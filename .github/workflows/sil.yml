@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build and run SIL
-        run: sh build-local.sh
+        run: make run
