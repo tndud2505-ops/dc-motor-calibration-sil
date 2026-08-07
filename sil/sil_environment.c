@@ -19,12 +19,12 @@ void sil_environment_reset(int32_t initial_position,
 
 void sil_environment_tick(void)
 {
-    if (g_direction == DC_DIRECTION_CCW && g_position < g_end_point)
+    if (g_direction == DC_DIRECTION_CW && g_position < g_end_point)
     {
         g_position++;
         g_pending_hall_pulses++;
     }
-    else if (g_direction == DC_DIRECTION_CW && g_position > g_start_point)
+    else if (g_direction == DC_DIRECTION_CCW && g_position > g_start_point)
     {
         g_position--;
         g_pending_hall_pulses++;
@@ -48,11 +48,11 @@ static void sil_motor_stop(void)
 
 static uint32_t sil_stopper_active(void)
 {
-    if (g_direction == DC_DIRECTION_CCW && g_position >= g_end_point)
+    if (g_direction == DC_DIRECTION_CW && g_position >= g_end_point)
     {
         return 1u;
     }
-    if (g_direction == DC_DIRECTION_CW && g_position <= g_start_point)
+    if (g_direction == DC_DIRECTION_CCW && g_position <= g_start_point)
     {
         return 1u;
     }

@@ -43,7 +43,7 @@ int main(void)
     int32_t position_before_stop;
     uint32_t success;
 
-    sil_environment_reset(1000, 980, 1020);
+    sil_environment_reset(50, 0, 100);
     dc_motor_controller_init(&controller,
                              sil_environment_platform(),
                              DC_INITIAL_POSITION);
@@ -56,7 +56,7 @@ int main(void)
     dc_motor_get_snapshot(&controller, &snapshot);
 
     get_on_finished = 0u;
-    if (snapshot_matches(&snapshot, DC_STATE_COMPLETE, 984, 984) != 0u)
+    if (snapshot_matches(&snapshot, DC_STATE_COMPLETE, 10, 10) != 0u)
     {
         dc_motor_on_command(&controller, DC_CMD_GET_ON, 0u);
         get_on_finished = run_until_state(&controller, DC_STATE_COMPLETE);
@@ -82,9 +82,9 @@ int main(void)
               get_on_finished != 0u &&
               stop_finished != 0u &&
               snapshot.calibration_complete != 0u &&
-              snapshot.start_point == 980 &&
-              snapshot.end_point == 1020 &&
-              snapshot.target_position == 984 &&
+              snapshot.start_point == 0 &&
+              snapshot.end_point == 100 &&
+              snapshot.target_position == 10 &&
               snapshot.current_position == position_before_stop - 1;
 
     /* 학생이 파형보다 상태 변수의 의미에 집중하도록 변수만 출력합니다. */

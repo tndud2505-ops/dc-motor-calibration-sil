@@ -8,7 +8,7 @@ submissions/
     └── control_logic.c
 ```
 
-`control_logic.c`는 `sil/dc_motor_control.h`의 인터페이스를 구현해야 합니다.
+`control_logic.c`는 `common/dc_motor_control.h`의 인터페이스를 구현해야 합니다.
 MCU 레지스터를 직접 다루지 않고, `dc_motor_platform_t` 콜백과 Hall pulse를
 사용해 CALIBRATION, GET ON, GET OFF, STOP 동작을 구현합니다.
 

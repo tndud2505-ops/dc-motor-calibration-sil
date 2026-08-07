@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check common and environment boundary
+        shell: bash
+        run: |
+          test -f common/dc_motor_control.c
+          test -f target/dc_motor_target.c
+          test -f sil/sil_environment.c
+          ! grep -En 'training_api\.h|RCC->|GPIO[A-Z]*->|TIM[0-9]*->|ADC[0-9]*->|USART[0-9]*->|EXTI->|HALL->' common/dc_motor_control.c
+          grep -q 'training_api.h' target/dc_motor_target.c
       - name: Run calibration SIL test
         run: make sil
       - name: Run every student submission
