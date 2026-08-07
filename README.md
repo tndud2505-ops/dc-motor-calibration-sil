@@ -63,3 +63,9 @@ make run
 `SIL_Tick()`, Hall 인터럽트, ADC 전류값을 구현하는 순서는 [SIL_GUIDE.md](SIL_GUIDE.md)를 참고합니다.
 
 로컬 빌드가 성공한 학생은 [GIT_SUBMISSION.md](GIT_SUBMISSION.md)에 따라 GitHub 계정을 만든 뒤 자신의 `student/학번` 브랜치에서 `code/sil_environment.c`만 수정해 Push합니다. GitHub Actions는 같은 코드를 다시 빌드하고 실행합니다.
+
+## 강사용 정답 코드
+
+[DC Motor CALIBRATION SIL 정답 사이트](guide/dc-motor-calibration-sil-guide.html)에서 완성된 `sil_environment.c`, 제공 제어 코드, 실행 코드와 정상 결과를 함께 확인할 수 있습니다.
+
+정답 원본은 `answer/sil_environment.c`에 있고, 수강생 시작 파일 `code/sil_environment.c`의 `TODO`는 그대로 유지합니다.
