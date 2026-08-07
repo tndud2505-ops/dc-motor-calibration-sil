@@ -30,9 +30,9 @@ sil/run-sil.bat       # Windows
 sil/run-sil.sh        # Linux/macOS/Git Bash
 ```
 
-테스트 프로그램은 `CALIBRATION` 다음 `GET_OFF`를 실행합니다. 출력은 상태 변수만
-보여주며, `success=1`이고 종료 코드가 `0`이면 통과입니다. 학생 코드로 바꿔
-검증하려면 다음처럼 실행합니다.
+테스트 프로그램은 `CALIBRATION` 다음 `GET_OFF`, `GET_ON`, `STOP`을 실행합니다.
+출력은 상태 변수와 테스트 결과만 보여주며, 네 테스트가 모두 `1`이고 `success=1`이며
+종료 코드가 `0`이면 통과입니다. 학생 코드로 바꿔 검증하려면 다음처럼 실행합니다.
 
 ```text
 sil/run-sil.bat submissions/1234/control_logic.c
@@ -45,8 +45,13 @@ CONTROL_SOURCE=submissions/1234/control_logic.c sil/run-sil.sh
 `CALIBRATION 완성 예제`를 선택할 수 있습니다. UART에서 다음 순서로 실행합니다.
 
 ```text
-CALIBRATION (0x04, DATA 0x00) -> 완료 대기 -> GET_OFF (0x02, DATA 0x00)
+CALIBRATION (0x04, DATA 0x00) -> 완료 대기 -> GET_OFF (0x02) -> GET_ON (0x01) -> STOP (0x03)
 ```
 
 사이트 Watch에서 `current_position`, `start_point`, `end_point`,
 `target_position`, `controller_state`, `calibration_complete`를 확인합니다.
+
+정답 코드는 `reference/dc_motor_reference.c`에 있습니다. 이 파일은 사이트에서
+실행하는 MCU 전체 예제이고, `sil/`은 같은 제어 로직을 레지스터 없이 검증하는
+호스트용 파일입니다. GitHub Actions는 `make sil`을 실행한 뒤 학생 제출 폴더의
+`control_logic.c`도 같은 방식으로 자동 빌드·검증합니다.

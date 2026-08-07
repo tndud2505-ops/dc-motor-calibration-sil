@@ -32,20 +32,12 @@ static void motor_ccw(dc_motor_controller_t *controller)
     controller->snapshot.direction = DC_DIRECTION_CCW;
 }
 
-static void enter_timeout(dc_motor_controller_t *controller)
-{
-    motor_stop(controller);
-    controller->snapshot.state = DC_STATE_TIMEOUT;
-    controller->snapshot.motion_ticks = 0u;
-}
-
 static void reset_calibration_values(dc_motor_controller_t *controller)
 {
     controller->snapshot.start_point = 0;
     controller->snapshot.end_point = 0;
     controller->snapshot.target_position = 0;
     controller->snapshot.calibration_complete = 0u;
-    controller->snapshot.motion_ticks = 0u;
 }
 
 static void start_calibration(dc_motor_controller_t *controller)
@@ -74,7 +66,6 @@ static void start_position_move(dc_motor_controller_t *controller,
     stroke = controller->snapshot.end_point - controller->snapshot.start_point;
     controller->snapshot.target_position =
         controller->snapshot.start_point + (stroke * (int32_t)percent) / 100;
-    controller->snapshot.motion_ticks = 0u;
     controller->snapshot.command_rejected = 0u;
     controller->snapshot.state = DC_STATE_MOVE_TO_TARGET;
 
@@ -102,7 +93,6 @@ static void handle_calibration(dc_motor_controller_t *controller)
         {
             motor_stop(controller);
             controller->snapshot.end_point = controller->snapshot.current_position;
-            controller->snapshot.motion_ticks = 0u;
             controller->snapshot.state = DC_STATE_CALIBRATE_TO_START;
             motor_cw(controller);
         }
@@ -111,16 +101,9 @@ static void handle_calibration(dc_motor_controller_t *controller)
             motor_stop(controller);
             controller->snapshot.start_point = controller->snapshot.current_position;
             controller->snapshot.calibration_complete = 1u;
-            controller->snapshot.motion_ticks = 0u;
             controller->snapshot.state = DC_STATE_READY;
         }
         return;
-    }
-
-    controller->snapshot.motion_ticks++;
-    if (controller->snapshot.motion_ticks >= DC_MOTION_TIMEOUT_TICKS)
-    {
-        enter_timeout(controller);
     }
 }
 
@@ -131,23 +114,10 @@ static void handle_position_move(dc_motor_controller_t *controller)
     {
         motor_stop(controller);
         controller->snapshot.state = DC_STATE_COMPLETE;
-        controller->snapshot.motion_ticks = 0u;
         return;
     }
 
-    if (controller->platform->stopper_active != 0 &&
-        controller->platform->stopper_active() != 0u)
-    {
-        enter_timeout(controller);
-        return;
-    }
-
-    controller->snapshot.motion_ticks++;
-    if (controller->snapshot.motion_ticks >= DC_MOTION_TIMEOUT_TICKS)
-    {
-        enter_timeout(controller);
-    }
-    else if (controller->snapshot.current_position < controller->snapshot.target_position)
+    if (controller->snapshot.current_position < controller->snapshot.target_position)
     {
         motor_ccw(controller);
     }
@@ -169,7 +139,6 @@ void dc_motor_controller_init(dc_motor_controller_t *controller,
     controller->snapshot.state = DC_STATE_IDLE;
     controller->snapshot.direction = DC_DIRECTION_STOP;
     controller->snapshot.calibration_complete = 0u;
-    controller->snapshot.motion_ticks = 0u;
     controller->snapshot.command_rejected = 0u;
     controller->snapshot.last_command = 0u;
     motor_stop(controller);

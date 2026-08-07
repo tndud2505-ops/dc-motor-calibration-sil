@@ -29,7 +29,6 @@ void dc_motor_controller_init(dc_motor_controller_t *controller,
     controller->snapshot.state = DC_STATE_IDLE;
     controller->snapshot.direction = DC_DIRECTION_STOP;
     controller->snapshot.calibration_complete = 0u;
-    controller->snapshot.motion_ticks = 0u;
     controller->snapshot.command_rejected = 0u;
     controller->snapshot.last_command = 0u;
     stop_motor(platform);

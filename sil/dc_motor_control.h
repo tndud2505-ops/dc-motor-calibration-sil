@@ -12,7 +12,6 @@
 #define DC_GET_ON_PERCENT 50u
 #define DC_GET_OFF_PERCENT 10u
 #define DC_POSITION_TOLERANCE 0
-#define DC_MOTION_TIMEOUT_TICKS 500u
 
 typedef enum
 {
@@ -21,8 +20,7 @@ typedef enum
     DC_STATE_CALIBRATE_TO_START,
     DC_STATE_READY,
     DC_STATE_MOVE_TO_TARGET,
-    DC_STATE_COMPLETE,
-    DC_STATE_TIMEOUT
+    DC_STATE_COMPLETE
 } dc_motor_state_t;
 
 typedef enum
@@ -50,7 +48,6 @@ typedef struct
     dc_motor_state_t state;
     dc_motor_direction_t direction;
     uint32_t calibration_complete;
-    uint32_t motion_ticks;
     uint32_t command_rejected;
     uint32_t last_command;
 } dc_motor_snapshot_t;

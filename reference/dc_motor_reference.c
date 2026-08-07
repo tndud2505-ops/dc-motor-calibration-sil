@@ -1,15 +1,16 @@
 #include "training_api.h"
 
 /*
- * DC motor CALIBRATION reference for the assignment.
+ * DC motor calibration reference.
  *
- * The assignment convention is fixed here:
- *   - CCW Hall pulse: current_position += 1
- *   - CW Hall pulse:  current_position -= 1
+ * Command map:
+ *   0x01 GET ON  -> move to 50 percent
+ *   0x02 GET OFF -> move to 10 percent
+ *   0x03 STOP    -> stop immediately
+ *   0x04 CAL     -> CCW end, then CW start
  *
- * The local trainer's DIR signal is wired so DIR LOW produces the physical
- * travel used as logical CCW. Keep that board mapping inside FW_* functions;
- * the control layer must only call those functions.
+ * The firmware layer touches registers and exposes small FW_* functions.
+ * The control layer only calls those functions and decides the sequence.
  */
 
 #define CMD_GET_ON 0x01u
@@ -19,11 +20,10 @@
 
 #define STATE_IDLE 0u
 #define STATE_CALIBRATE_TO_END 1u
-#define STATE_CALIBRATE_TO_START 2u
-#define STATE_READY 3u
+#define STATE_WAIT_CURRENT_LOW 2u
+#define STATE_CALIBRATE_TO_START 3u
 #define STATE_MOVE_TO_TARGET 4u
-#define STATE_COMPLETE 5u
-#define STATE_TIMEOUT 6u
+#define STATE_READY 5u
 
 #define DIRECTION_STOP 0u
 #define DIRECTION_CW 1u
@@ -33,10 +33,7 @@
 #define GET_ON_PERCENT 50u
 #define GET_OFF_PERCENT 10u
 #define INITIAL_POSITION 1000u
-#define MOTION_TIMEOUT_TICKS 1500u
-#define END_CURRENT_RAW_THRESHOLD 2880u
-#define END_CURRENT_SETTLE_TICKS 25u
-#define END_CURRENT_CONFIRM_TICKS 8u
+#define END_CURRENT_RAW_THRESHOLD 2800u
 
 /* ---------------- Firmware / hardware layer ---------------- */
 
@@ -46,25 +43,27 @@ volatile uint32_t end_point = 0u;
 volatile uint32_t target_position = 0u;
 volatile uint32_t controller_state = STATE_IDLE;
 volatile uint32_t motor_direction = DIRECTION_STOP;
-volatile uint32_t motor_running = 0u;
-volatile uint32_t calibration_complete = 0u;
-volatile uint32_t calibration_locked = 0u;
-volatile uint32_t calibration_timeout = 0u;
-volatile uint32_t command_rejected = 0u;
-volatile uint32_t last_command = 0u;
-volatile uint32_t last_data = 0u;
-volatile uint32_t hall_irq_count = 0u;
-volatile uint32_t hall_count = 0u;
 volatile uint32_t current_raw = 0u;
-volatile uint32_t motion_ticks = 0u;
-volatile uint32_t end_current_ticks = 0u;
-volatile uint32_t end_current_detected = 0u;
+volatile uint32_t calibration_complete = 0u;
+volatile uint32_t hall_count = 0u;
+volatile uint32_t calibration_hall_base = 0u;
+volatile uint32_t calibration_current_seen_low = 0u;
 
 static void FW_ADC_Init(void)
 {
     ADC1->SQR3 = ADC_SQR3_SQ1_ADC1_IN1;
     ADC1->CR1 = 0u;
     ADC1->CR2 = ADC_CR2_ADON | ADC_CR2_EXTSEL_TIM2_CC2 | ADC_CR2_EXTTRIG;
+}
+
+static uint32_t FW_ADC_ReadCurrent(void)
+{
+    if ((ADC1->SR & ADC_SR_EOC) != 0u)
+    {
+        current_raw = ADC1->DR;
+    }
+
+    return current_raw;
 }
 
 static void FW_UART_Init(void)
@@ -92,27 +91,23 @@ static void FW_Motor_Stop(void)
 {
     TIM2->CCR1 = 0u;
     GPIOA->BSRR = GPIOA_DRV_EN_BIT << 16;
-    motor_running = 0u;
     motor_direction = DIRECTION_STOP;
 }
 
 static void FW_Motor_SetCCW(void)
 {
-    FW_Motor_Stop();
-    /* Board mapping: DIR LOW is the logical CCW direction for this task. */
-    GPIOA->BSRR = GPIOA_DRV_EN_BIT | (GPIOA_DRV_DIR_BIT << 16);
+    /* DIR HIGH is CCW in the trainer model. */
+    GPIOA->BSRR = GPIOA_DRV_DIR_BIT | GPIOA_DRV_EN_BIT;
     TIM2->CCR1 = MOTOR_DUTY;
     motor_direction = DIRECTION_CCW;
-    motor_running = 1u;
 }
 
 static void FW_Motor_SetCW(void)
 {
-    FW_Motor_Stop();
-    GPIOA->BSRR = GPIOA_DRV_EN_BIT | GPIOA_DRV_DIR_BIT;
+    /* DIR LOW is CW in the trainer model. */
+    GPIOA->BSRR = (GPIOA_DRV_DIR_BIT << 16) | GPIOA_DRV_EN_BIT;
     TIM2->CCR1 = MOTOR_DUTY;
     motor_direction = DIRECTION_CW;
-    motor_running = 1u;
 }
 
 static void FW_Hall_Reset(void)
@@ -121,59 +116,30 @@ static void FW_Hall_Reset(void)
     hall_count = 0u;
 }
 
-static void FW_Sensor_Service(void)
+static uint32_t FW_Hall_ReadCount(void)
 {
-    if ((ADC1->SR & ADC_SR_EOC) != 0u)
-    {
-        current_raw = ADC1->DR;
-    }
-
-    if (motor_running == 0u)
-    {
-        return;
-    }
-
-    motion_ticks++;
-    if (motion_ticks >= END_CURRENT_SETTLE_TICKS && current_raw >= END_CURRENT_RAW_THRESHOLD)
-    {
-        end_current_ticks++;
-        if (end_current_ticks >= END_CURRENT_CONFIRM_TICKS)
-        {
-            end_current_detected = 1u;
-        }
-    }
-    else
-    {
-        end_current_ticks = 0u;
-    }
-}
-
-static void FW_Motor_StartForCurrentDirection(void)
-{
-    if (motor_direction == DIRECTION_CCW)
-    {
-        FW_Motor_SetCCW();
-    }
-    else if (motor_direction == DIRECTION_CW)
-    {
-        FW_Motor_SetCW();
-    }
+    return HALL->COUNT;
 }
 
 /* ---------------- Control logic layer ---------------- */
 
-static void CL_ResetMotionMonitor(void)
+static void CL_UpdatePosition(void)
 {
-    motion_ticks = 0u;
-    end_current_ticks = 0u;
-    end_current_detected = 0u;
-}
+    uint32_t hardware_hall_count = FW_Hall_ReadCount();
 
-static void CL_EnterTimeout(void)
-{
-    FW_Motor_Stop();
-    calibration_timeout = 1u;
-    controller_state = STATE_TIMEOUT;
+    while (hall_count < hardware_hall_count)
+    {
+        if (motor_direction == DIRECTION_CCW)
+        {
+            current_position++;
+        }
+        else if (motor_direction == DIRECTION_CW)
+        {
+            current_position--;
+        }
+
+        hall_count++;
+    }
 }
 
 static void CL_StartCalibration(void)
@@ -184,27 +150,17 @@ static void CL_StartCalibration(void)
     end_point = 0u;
     target_position = 0u;
     calibration_complete = 0u;
-    calibration_timeout = 0u;
-    CL_ResetMotionMonitor();
+    calibration_hall_base = hall_count;
+    calibration_current_seen_low = 0u;
     controller_state = STATE_CALIBRATE_TO_END;
     FW_Motor_SetCCW();
 }
 
 static void CL_StartMove(uint32_t percent)
 {
-    uint32_t stroke;
+    uint32_t stroke = end_point - start_point;
 
-    if (calibration_complete == 0u || end_point <= start_point)
-    {
-        FW_Motor_Stop();
-        command_rejected = 1u;
-        controller_state = STATE_IDLE;
-        return;
-    }
-
-    stroke = end_point - start_point;
     target_position = start_point + (stroke * percent) / 100u;
-    CL_ResetMotionMonitor();
     controller_state = STATE_MOVE_TO_TARGET;
 
     if (current_position < target_position)
@@ -218,7 +174,7 @@ static void CL_StartMove(uint32_t percent)
     else
     {
         FW_Motor_Stop();
-        controller_state = STATE_COMPLETE;
+        controller_state = STATE_READY;
     }
 }
 
@@ -232,59 +188,62 @@ static void CL_HandleCommand(void)
         return;
     }
 
-    last_command = cmd;
-    last_data = data;
-    command_rejected = 0u;
+    (void)data;
 
-    if (cmd == CMD_STOP && data == 0u)
+    if (cmd == CMD_GET_ON && calibration_complete != 0u)
+    {
+        CL_StartMove(GET_ON_PERCENT);
+    }
+    else if (cmd == CMD_GET_OFF && calibration_complete != 0u)
+    {
+        CL_StartMove(GET_OFF_PERCENT);
+    }
+    else if (cmd == CMD_STOP)
     {
         FW_Motor_Stop();
         controller_state = STATE_IDLE;
     }
-    else if (data != 0u)
+    else if (cmd == CMD_CALIBRATION)
     {
-        command_rejected = 1u;
-    }
-    else if (cmd == CMD_CALIBRATION && calibration_locked == 0u)
-    {
-        calibration_locked = 1u;
         CL_StartCalibration();
-    }
-    else if (cmd == CMD_GET_ON && controller_state == STATE_READY)
-    {
-        CL_StartMove(GET_ON_PERCENT);
-    }
-    else if (cmd == CMD_GET_OFF && controller_state == STATE_READY)
-    {
-        CL_StartMove(GET_OFF_PERCENT);
-    }
-    else
-    {
-        command_rejected = 1u;
     }
 }
 
 static void CL_HandleCalibration(void)
 {
-    if (controller_state == STATE_CALIBRATE_TO_END && end_current_detected != 0u)
+    if (controller_state == STATE_CALIBRATE_TO_END && current_raw >= END_CURRENT_RAW_THRESHOLD)
     {
-        FW_Motor_Stop();
-        end_point = current_position;
-        CL_ResetMotionMonitor();
+        if (hall_count > calibration_hall_base && calibration_current_seen_low != 0u)
+        {
+            end_point = current_position;
+            FW_Motor_Stop();
+            controller_state = STATE_WAIT_CURRENT_LOW;
+        }
+    }
+    else if (controller_state == STATE_CALIBRATE_TO_END && hall_count > calibration_hall_base && current_raw < END_CURRENT_RAW_THRESHOLD)
+    {
+        calibration_current_seen_low = 1u;
+    }
+    else if (controller_state == STATE_WAIT_CURRENT_LOW && current_raw < END_CURRENT_RAW_THRESHOLD)
+    {
+        calibration_hall_base = hall_count;
+        calibration_current_seen_low = 0u;
         controller_state = STATE_CALIBRATE_TO_START;
         FW_Motor_SetCW();
     }
-    else if (controller_state == STATE_CALIBRATE_TO_START && end_current_detected != 0u)
+    else if (controller_state == STATE_CALIBRATE_TO_START && current_raw >= END_CURRENT_RAW_THRESHOLD)
     {
-        FW_Motor_Stop();
-        start_point = current_position;
-        calibration_complete = 1u;
-        CL_ResetMotionMonitor();
-        controller_state = STATE_READY;
+        if (hall_count > calibration_hall_base && calibration_current_seen_low != 0u)
+        {
+            start_point = current_position;
+            calibration_complete = 1u;
+            FW_Motor_Stop();
+            controller_state = STATE_READY;
+        }
     }
-    else if ((controller_state == STATE_CALIBRATE_TO_END || controller_state == STATE_CALIBRATE_TO_START) && motion_ticks >= MOTION_TIMEOUT_TICKS)
+    else if (controller_state == STATE_CALIBRATE_TO_START && hall_count > calibration_hall_base && current_raw < END_CURRENT_RAW_THRESHOLD)
     {
-        CL_EnterTimeout();
+        calibration_current_seen_low = 1u;
     }
 }
 
@@ -295,26 +254,22 @@ static void CL_HandleMove(void)
         return;
     }
 
-    if (current_position == target_position)
+    if (motor_direction == DIRECTION_CCW)
     {
-        FW_Motor_Stop();
-        controller_state = STATE_COMPLETE;
+        if (current_position >= target_position)
+        {
+            FW_Motor_Stop();
+            controller_state = STATE_READY;
+        }
     }
-    else if (motion_ticks >= MOTION_TIMEOUT_TICKS)
+    else if (motor_direction == DIRECTION_CW)
     {
-        CL_EnterTimeout();
+        if (current_position <= target_position)
+        {
+            FW_Motor_Stop();
+            controller_state = STATE_READY;
+        }
     }
-    else
-    {
-        FW_Motor_StartForCurrentDirection();
-    }
-}
-
-static void CL_Service(void)
-{
-    CL_HandleCommand();
-    CL_HandleCalibration();
-    CL_HandleMove();
 }
 
 static void CL_PublishWatch(void)
@@ -323,16 +278,9 @@ static void CL_PublishWatch(void)
     watch_u32("start_point", start_point);
     watch_u32("end_point", end_point);
     watch_u32("target_position", target_position);
-    watch_u32("controller_state", controller_state);
-    watch_u32("motor_direction", motor_direction);
-    watch_u32("calibration_complete", calibration_complete);
-    watch_u32("calibration_locked", calibration_locked);
-    watch_u32("calibration_timeout", calibration_timeout);
-    watch_u32("command_rejected", command_rejected);
-    watch_u32("last_command", last_command);
-    watch_u32("last_data", last_data);
-    watch_u32("hall_count", hall_count);
     watch_u32("current_raw", current_raw);
+    watch_u32("controller_state", controller_state);
+    watch_u32("calibration_complete", calibration_complete);
 }
 
 void user_init(void)
@@ -350,6 +298,7 @@ void user_init(void)
     TIM2->CCR1 = 0u;
     TIM2->CCR2 = 30u;
     TIM2->CCER = TIM2_CCER_CC1E;
+    TIM2->CR1 = TIM2_CR1_CEN;
 
     FW_ADC_Init();
     FW_UART_Init();
@@ -357,7 +306,6 @@ void user_init(void)
     EXTI->RTSR = EXTI_RTSR_TR6;
     EXTI->FTSR = 0u;
     EXTI->PR = EXTI_PR_PR6;
-    TIM2->CR1 = TIM2_CR1_CEN;
     FW_Motor_Stop();
     FW_Hall_Reset();
     CL_PublishWatch();
@@ -367,26 +315,16 @@ void EXTI6_IRQHandler(void)
 {
     if ((EXTI->PR & EXTI_PR_PR6) != 0u)
     {
-        hall_irq_count++;
-        hall_count++;
-
-        /* Assignment rule: CCW +1, CW -1. */
-        if (motor_direction == DIRECTION_CCW)
-        {
-            current_position++;
-        }
-        else if (motor_direction == DIRECTION_CW && current_position > 0u)
-        {
-            current_position--;
-        }
-
         EXTI->PR = EXTI_PR_PR6;
     }
 }
 
 void user_loop(void)
 {
-    FW_Sensor_Service();
-    CL_Service();
+    current_raw = FW_ADC_ReadCurrent();
+    CL_UpdatePosition();
+    CL_HandleCommand();
+    CL_HandleCalibration();
+    CL_HandleMove();
     CL_PublishWatch();
 }
