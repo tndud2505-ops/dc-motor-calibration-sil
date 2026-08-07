@@ -45,8 +45,8 @@ static void start_calibration(dc_motor_controller_t *controller)
     motor_stop(controller);
     reset_calibration_values(controller);
     controller->snapshot.command_rejected = 0u;
-    controller->snapshot.state = DC_STATE_CALIBRATE_TO_END;
-    motor_ccw(controller);
+    controller->snapshot.state = DC_STATE_CALIBRATE_TO_UPPER;
+    motor_cw(controller);
 }
 
 static void start_position_move(dc_motor_controller_t *controller,
@@ -71,11 +71,11 @@ static void start_position_move(dc_motor_controller_t *controller,
 
     if (controller->snapshot.current_position < controller->snapshot.target_position)
     {
-        motor_ccw(controller);
+        motor_cw(controller);
     }
     else if (controller->snapshot.current_position > controller->snapshot.target_position)
     {
-        motor_cw(controller);
+        motor_ccw(controller);
     }
     else
     {
@@ -86,24 +86,32 @@ static void start_position_move(dc_motor_controller_t *controller,
 
 static void handle_calibration(dc_motor_controller_t *controller)
 {
-    if (controller->platform->stopper_active != 0 &&
-        controller->platform->stopper_active() != 0u)
+    uint32_t stopper_active = 0u;
+
+    if (controller->platform->stopper_active != 0)
     {
-        if (controller->snapshot.state == DC_STATE_CALIBRATE_TO_END)
-        {
-            motor_stop(controller);
-            controller->snapshot.end_point = controller->snapshot.current_position;
-            controller->snapshot.state = DC_STATE_CALIBRATE_TO_START;
-            motor_cw(controller);
-        }
-        else
-        {
-            motor_stop(controller);
-            controller->snapshot.start_point = controller->snapshot.current_position;
-            controller->snapshot.calibration_complete = 1u;
-            controller->snapshot.state = DC_STATE_READY;
-        }
-        return;
+        stopper_active = controller->platform->stopper_active();
+    }
+
+    if (controller->snapshot.state == DC_STATE_CALIBRATE_TO_UPPER && stopper_active != 0u)
+    {
+        motor_stop(controller);
+        controller->snapshot.end_point = controller->snapshot.current_position;
+        controller->snapshot.state = DC_STATE_WAIT_CURRENT_LOW;
+    }
+    else if (controller->snapshot.state == DC_STATE_WAIT_CURRENT_LOW && stopper_active == 0u)
+    {
+        controller->snapshot.state = DC_STATE_CALIBRATE_TO_LOWER;
+        motor_ccw(controller);
+    }
+    else if (controller->snapshot.state == DC_STATE_CALIBRATE_TO_LOWER && stopper_active != 0u)
+    {
+        motor_stop(controller);
+        controller->snapshot.end_point -= controller->snapshot.current_position;
+        controller->snapshot.start_point = 0;
+        controller->snapshot.current_position = 0;
+        controller->snapshot.calibration_complete = 1u;
+        controller->snapshot.state = DC_STATE_READY;
     }
 }
 
@@ -119,11 +127,11 @@ static void handle_position_move(dc_motor_controller_t *controller)
 
     if (controller->snapshot.current_position < controller->snapshot.target_position)
     {
-        motor_ccw(controller);
+        motor_cw(controller);
     }
     else
     {
-        motor_cw(controller);
+        motor_ccw(controller);
     }
 }
 
@@ -191,12 +199,12 @@ void dc_motor_tick(dc_motor_controller_t *controller)
         pulse_count = controller->platform->take_hall_pulses();
         while (pulse_count > 0u)
         {
-            /* 과제 정의: CCW pulse +1, CW pulse -1. */
-            if (controller->snapshot.direction == DC_DIRECTION_CCW)
+            /* IMS 좌표: LOWER=0, CW는 증가, CCW는 감소. */
+            if (controller->snapshot.direction == DC_DIRECTION_CW)
             {
                 controller->snapshot.current_position++;
             }
-            else if (controller->snapshot.direction == DC_DIRECTION_CW)
+            else if (controller->snapshot.direction == DC_DIRECTION_CCW)
             {
                 controller->snapshot.current_position--;
             }
@@ -204,8 +212,9 @@ void dc_motor_tick(dc_motor_controller_t *controller)
         }
     }
 
-    if (controller->snapshot.state == DC_STATE_CALIBRATE_TO_END ||
-        controller->snapshot.state == DC_STATE_CALIBRATE_TO_START)
+    if (controller->snapshot.state == DC_STATE_CALIBRATE_TO_UPPER ||
+        controller->snapshot.state == DC_STATE_WAIT_CURRENT_LOW ||
+        controller->snapshot.state == DC_STATE_CALIBRATE_TO_LOWER)
     {
         handle_calibration(controller);
     }

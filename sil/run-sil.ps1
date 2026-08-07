@@ -1,5 +1,5 @@
 param(
-    [string] $ControlSource = 'sil/dc_motor_control.c'
+    [string] $ControlSource = 'common/dc_motor_control.c'
 )
 $ErrorActionPreference = 'Stop'
 $packageRoot = Split-Path -Parent $PSScriptRoot

@@ -2,7 +2,7 @@
  * Student submission template.
  *
  * Copy this file to submissions/<student-id>/control_logic.c. The public
- * reference implementation is sil/dc_motor_control.c; this file exposes the
+ * reference implementation is common/dc_motor_control.c; this file exposes the
  * same SIL contract with the decision-making functions left for students.
  * Do not write MCU registers here.
  */
