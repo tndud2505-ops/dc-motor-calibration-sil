@@ -46,8 +46,6 @@ volatile uint32_t motor_direction = DIRECTION_STOP;
 volatile uint32_t current_raw = 0u;
 volatile uint32_t calibration_complete = 0u;
 volatile uint32_t hall_count = 0u;
-volatile uint32_t calibration_hall_base = 0u;
-volatile uint32_t calibration_current_seen_low = 0u;
 
 static void FW_ADC_Init(void)
 {
@@ -125,20 +123,18 @@ static uint32_t FW_Hall_ReadCount(void)
 
 static void CL_UpdatePosition(void)
 {
-    uint32_t hardware_hall_count = FW_Hall_ReadCount();
+    uint32_t new_hall_count = FW_Hall_ReadCount();
+    uint32_t pulse_count = new_hall_count - hall_count;
 
-    while (hall_count < hardware_hall_count)
+    hall_count = new_hall_count;
+
+    if (motor_direction == DIRECTION_CCW)
     {
-        if (motor_direction == DIRECTION_CCW)
-        {
-            current_position++;
-        }
-        else if (motor_direction == DIRECTION_CW)
-        {
-            current_position--;
-        }
-
-        hall_count++;
+        current_position += pulse_count;
+    }
+    else if (motor_direction == DIRECTION_CW)
+    {
+        current_position -= pulse_count;
     }
 }
 
@@ -148,10 +144,7 @@ static void CL_StartCalibration(void)
     current_position = INITIAL_POSITION;
     start_point = 0u;
     end_point = 0u;
-    target_position = 0u;
     calibration_complete = 0u;
-    calibration_hall_base = hall_count;
-    calibration_current_seen_low = 0u;
     controller_state = STATE_CALIBRATE_TO_END;
     FW_Motor_SetCCW();
 }
@@ -213,37 +206,21 @@ static void CL_HandleCalibration(void)
 {
     if (controller_state == STATE_CALIBRATE_TO_END && current_raw >= END_CURRENT_RAW_THRESHOLD)
     {
-        if (hall_count > calibration_hall_base && calibration_current_seen_low != 0u)
-        {
-            end_point = current_position;
-            FW_Motor_Stop();
-            controller_state = STATE_WAIT_CURRENT_LOW;
-        }
-    }
-    else if (controller_state == STATE_CALIBRATE_TO_END && hall_count > calibration_hall_base && current_raw < END_CURRENT_RAW_THRESHOLD)
-    {
-        calibration_current_seen_low = 1u;
+        end_point = current_position;
+        FW_Motor_Stop();
+        controller_state = STATE_WAIT_CURRENT_LOW;
     }
     else if (controller_state == STATE_WAIT_CURRENT_LOW && current_raw < END_CURRENT_RAW_THRESHOLD)
     {
-        calibration_hall_base = hall_count;
-        calibration_current_seen_low = 0u;
         controller_state = STATE_CALIBRATE_TO_START;
         FW_Motor_SetCW();
     }
     else if (controller_state == STATE_CALIBRATE_TO_START && current_raw >= END_CURRENT_RAW_THRESHOLD)
     {
-        if (hall_count > calibration_hall_base && calibration_current_seen_low != 0u)
-        {
-            start_point = current_position;
-            calibration_complete = 1u;
-            FW_Motor_Stop();
-            controller_state = STATE_READY;
-        }
-    }
-    else if (controller_state == STATE_CALIBRATE_TO_START && hall_count > calibration_hall_base && current_raw < END_CURRENT_RAW_THRESHOLD)
-    {
-        calibration_current_seen_low = 1u;
+        start_point = current_position;
+        calibration_complete = 1u;
+        FW_Motor_Stop();
+        controller_state = STATE_READY;
     }
 }
 
@@ -254,21 +231,15 @@ static void CL_HandleMove(void)
         return;
     }
 
-    if (motor_direction == DIRECTION_CCW)
+    if (motor_direction == DIRECTION_CCW && current_position >= target_position)
     {
-        if (current_position >= target_position)
-        {
-            FW_Motor_Stop();
-            controller_state = STATE_READY;
-        }
+        FW_Motor_Stop();
+        controller_state = STATE_READY;
     }
-    else if (motor_direction == DIRECTION_CW)
+    else if (motor_direction == DIRECTION_CW && current_position <= target_position)
     {
-        if (current_position <= target_position)
-        {
-            FW_Motor_Stop();
-            controller_state = STATE_READY;
-        }
+        FW_Motor_Stop();
+        controller_state = STATE_READY;
     }
 }
 
