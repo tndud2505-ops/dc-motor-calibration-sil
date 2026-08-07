@@ -2,7 +2,9 @@
 
 공유 저장소: https://github.com/tndud2505-ops/dc-motor-calibration-sil
 
-이 과제에서 학생은 실제 MCU 코드를 다시 작성하지 않습니다. 제공된 제어 로직을 PC에서 실행할 수 있도록 `sil_environment.c` 하나만 구현합니다.
+이 과제에서 학생은 실제 MCU 코드를 다시 작성하지 않습니다. 제공된 제어 로직을 PC에서 실행할 수 있도록 `code/sil_environment.c` 하나만 구현합니다.
+
+저장소의 `code/sil_environment.c`는 함수 원형과 `TODO`만 있는 시작 파일입니다. 처음 내려받은 상태에서도 컴파일은 되지만 CAL, GET OFF, GET ON 결과는 완성되지 않습니다.
 
 학습 순서는 다음과 같습니다.
 
@@ -17,10 +19,11 @@ GitHub 가입 전 ZIP 다운로드와 로컬 빌드
 ## 파일 구조
 
 ```text
-provided_control.c   수정 금지: 제공되는 모터 제어 로직
-sil_environment.c   학생 작성: 모터·전류·Hall·인터럽트 모사
-main.c              수정 금지: 명령 실행 및 변수 출력
-sil_api.h           수정 금지: 공용 함수와 상수 선언
+code/
+  provided_control.c   수정 금지: 제공되는 모터 제어 로직
+  sil_environment.c   학생 작성: 모터·전류·Hall·인터럽트 모사
+  main.c              수정 금지: 명령 실행 및 변수 출력
+  sil_api.h           수정 금지: 공용 함수와 상수 선언
 Makefile            빌드 및 실행
 ASSIGNMENT.md        상세 과제 설명
 LOCAL_BUILD.md       GitHub 가입 전 로컬 빌드 설명
@@ -63,8 +66,8 @@ sh build-local.sh
 make run
 ```
 
-`main.c`는 CALIBRATION, GET OFF, GET ON, STOP 순서로 명령을 실행하고 변수만 출력합니다. 별도의 정답 판정 코드는 포함하지 않습니다.
+`code/main.c`는 CALIBRATION, GET OFF, GET ON, STOP 순서로 명령을 실행하고 변수만 출력합니다. 별도의 정답 판정 코드는 포함하지 않습니다. 따라서 GitHub Actions의 초록색 체크는 빌드와 실행 성공을 뜻하며 SIL 기능 완성을 자동으로 판정하지 않습니다.
 
 `SIL_Tick()`, Hall 인터럽트, ADC 전류값을 구현하는 순서는 [SIL_GUIDE.md](SIL_GUIDE.md)를 참고합니다.
 
-로컬 빌드가 성공한 학생은 [GIT_SUBMISSION.md](GIT_SUBMISSION.md)에 따라 GitHub 계정을 만든 뒤 자신의 `student/학번` 브랜치에서 `sil_environment.c`만 수정해 Push합니다. GitHub Actions는 같은 코드를 다시 빌드하고 실행합니다.
+로컬 빌드가 성공한 학생은 [GIT_SUBMISSION.md](GIT_SUBMISSION.md)에 따라 GitHub 계정을 만든 뒤 자신의 `student/학번` 브랜치에서 `code/sil_environment.c`만 수정해 Push합니다. GitHub Actions는 같은 코드를 다시 빌드하고 실행합니다.

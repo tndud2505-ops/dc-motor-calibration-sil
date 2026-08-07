@@ -7,8 +7,8 @@ COMPILER="${CC:-cc}"
 OUTPUT="dc_motor_sil"
 
 echo "[BUILD] Compiler: $COMPILER"
-"$COMPILER" -std=c11 -O2 -Wall -Wextra -Werror -pedantic \
-    provided_control.c sil_environment.c main.c \
+"$COMPILER" -std=c11 -O2 -Wall -Wextra -Werror -pedantic -Icode \
+    code/provided_control.c code/sil_environment.c code/main.c \
     -o "$OUTPUT"
 
 echo "[RUN] $OUTPUT"

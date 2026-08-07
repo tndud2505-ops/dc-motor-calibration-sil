@@ -16,10 +16,11 @@ GitHub 계정이 없어도 공개 저장소의 ZIP 파일을 받을 수 있습�
 압축을 해제한 폴더에는 최소한 다음 파일이 있어야 합니다.
 
 ```text
-provided_control.c
-sil_environment.c
-main.c
-sil_api.h
+code/
+  provided_control.c
+  sil_environment.c
+  main.c
+  sil_api.h
 build-local.bat
 build-local.ps1
 build-local.sh
@@ -65,7 +66,7 @@ WSL 설치에 대한 공식 설명은 [Microsoft WSL 설치 문서](https://lear
 이 스크립트는 다음 세 파일을 함께 컴파일합니다.
 
 ```text
-provided_control.c + sil_environment.c + main.c
+code/provided_control.c + code/sil_environment.c + code/main.c
 ```
 
 Windows GCC 또는 Clang을 찾으면 `dc_motor_sil.exe`를 만들고 실행합니다. Windows 컴파일러가 없고 WSL이 준비되어 있으면 WSL에서 `dc_motor_sil`을 만들고 실행합니다.
@@ -84,9 +85,24 @@ sh build-local.sh
 make run
 ```
 
-## 5. 정상 출력 확인
+## 5. 처음 받은 빈 코드의 빌드 확인
 
-핵심 출력이 다음과 같으면 제공 예제가 정상적으로 동작한 것입니다.
+처음 받은 `code/sil_environment.c`에는 `TODO`만 있으므로 CAL은 완성되지 않습니다. 그래도 C 문법 오류 없이 프로그램이 끝까지 실행되면 첫 번째 로컬 빌드는 성공입니다.
+
+초기 출력에는 다음처럼 미완성 값이 나타날 수 있습니다.
+
+```text
+[CALIBRATION]
+calibration_complete=0
+lower_point=0
+upper_point=0
+```
+
+이 출력은 정답이 아니라 시작 상태입니다.
+
+## 6. SIL 구현 후 목표 출력
+
+`SIL_GUIDE.md`를 따라 `code/sil_environment.c`를 구현한 뒤에는 핵심 출력이 다음과 같아야 합니다.
 
 ```text
 [CALIBRATION]
@@ -108,9 +124,9 @@ state=0
 motor_direction=0
 ```
 
-`main.c`는 자동 채점을 하지 않습니다. 각 단계의 변수를 화면에 출력할 뿐입니다.
+`code/main.c`는 자동 채점을 하지 않습니다. 각 단계의 변수를 화면에 출력할 뿐입니다.
 
-## 6. 빌드 오류 확인 방법
+## 7. 빌드 오류 확인 방법
 
 ### `No C compiler was found`
 
@@ -127,9 +143,9 @@ sudo apt install build-essential
 
 ### C 문법 오류가 출력되는 경우
 
-오류 메시지에 표시된 파일명과 줄 번호를 확인합니다. 학생이 수정해야 할 파일은 `sil_environment.c` 하나입니다.
+오류 메시지에 표시된 파일명과 줄 번호를 확인합니다. 학생이 수정해야 할 파일은 `code/sil_environment.c` 하나입니다.
 
-## 7. 로컬 빌드 다음 단계
+## 8. 로컬 빌드 다음 단계
 
 로컬 빌드가 성공한 뒤에 GitHub 계정을 만들고 Git 사용법을 학습합니다. 처음부터 Git과 SIL을 동시에 익히지 않고 다음 순서로 진행합니다.
 

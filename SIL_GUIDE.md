@@ -1,4 +1,6 @@
-# `sil_environment.c` 구현 상세 가이드
+# `code/sil_environment.c` 구현 상세 가이드
+
+저장소의 학생 파일에는 함수 원형과 `TODO`만 들어 있습니다. 아래 코드 조각은 각 TODO를 어떤 순서와 원리로 구현할지 설명하는 학습 예시입니다.
 
 ## 1. 이 과제에서 SIL을 사용하는 이유
 
@@ -16,25 +18,25 @@
 ## 2. 파일 사이의 역할
 
 ```text
-provided_control.c
+code/provided_control.c
     CAL, GET ON, GET OFF, STOP 제어 순서를 결정
             │ SIL_MotorCW(), SIL_MotorCCW(), SIL_MotorStop()
             ▼
-sil_environment.c
+code/sil_environment.c
     가상 모터 위치와 전류를 갱신
             │ EXTI6_IRQHandler(), ADC1_2_IRQHandler()
             ▼
-provided_control.c
+code/provided_control.c
     Hall pulse와 ADC 전류값을 받아 제어 상태를 갱신
 ```
 
 두 파일은 전역변수를 직접 공유하지 않습니다.
 
 ```c
-/* provided_control.c 안에서만 사용 */
+/* code/provided_control.c 안에서만 사용 */
 static uint32_t control_current_raw;
 
-/* sil_environment.c 안에서만 사용 */
+/* code/sil_environment.c 안에서만 사용 */
 static uint32_t sil_current_raw;
 ```
 
@@ -42,7 +44,7 @@ static uint32_t sil_current_raw;
 
 ## 3. 가상 환경에서 보관할 상태
 
-`sil_environment.c`에는 실제 장비를 대신하는 상태가 필요합니다.
+`code/sil_environment.c`에는 실제 장비를 대신하는 상태가 필요합니다.
 
 ```c
 static int32_t physical_position;
@@ -224,7 +226,7 @@ int32_t SIL_GetPhysicalPosition(void)
 ```
 
 - `SIL_ReadCurrentRaw()`는 ADC 인터럽트가 읽을 가상 전류를 반환합니다.
-- `SIL_GetPhysicalPosition()`은 `main.c`가 출력용으로 가상 물리 위치를 확인할 때 사용합니다.
+- `SIL_GetPhysicalPosition()`은 `code/main.c`가 출력용으로 가상 물리 위치를 확인할 때 사용합니다.
 - 반환 함수를 사용하며 다른 C 파일에서 SIL의 `static` 변수에 직접 접근하지 않습니다.
 
 ## 8. CALIBRATION이 진행되는 전체 순서
@@ -292,3 +294,4 @@ target = LOWER + (UPPER - LOWER) × percent / 100
 - [ ] 매 tick 마지막에 `ADC1_2_IRQHandler()`를 호출하는가?
 - [ ] 제어 코드의 변수를 직접 참조하지 않는가?
 - [ ] `build-local.bat` 또는 `sh build-local.sh`로 빌드되는가?
+- [ ] `code/main.c` 출력에서 CAL 완료와 목표 위치 값을 직접 확인했는가?

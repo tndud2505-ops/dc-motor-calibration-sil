@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sourceFiles = @("provided_control.c", "sil_environment.c", "main.c")
+$sourceFiles = @("code/provided_control.c", "code/sil_environment.c", "code/main.c")
 
 Push-Location $projectRoot
 try {
@@ -46,7 +46,7 @@ try {
         throw "The project path cannot contain a single quote when WSL fallback is used."
     }
 
-    $wslCommand = "cd '$wslProjectRoot' && cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic provided_control.c sil_environment.c main.c -o dc_motor_sil && ./dc_motor_sil"
+    $wslCommand = "cd '$wslProjectRoot' && cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic -Icode code/provided_control.c code/sil_environment.c code/main.c -o dc_motor_sil && ./dc_motor_sil"
 
     Write-Host "[BUILD] WSL compiler: cc"
     Write-Host "[RUN] WSL dc_motor_sil"
