@@ -57,7 +57,7 @@ void SIL_Tick(void)
         current_raw = CURRENT_RAW_STOP;
     }
     else if (physical_position == PHYSICAL_POSITION_UPPER ||
-        physical_position == PHYSICAL_POSITION_UPPER) {
+        physical_position == PHYSICAL_POSITION_LOWER) {
         current_raw = CURRENT_RAW_STALL;
     }
     else {
