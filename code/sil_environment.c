@@ -1,40 +1,73 @@
-#include "sil_api.h"
+#include "sil_api.h" //[cite: 9]
 
-/* 학생 작성 영역: 함수 원형은 유지하고 TODO를 구현합니다. */
+#define PHYSICAL_LOWER_POSITION 0    //
+#define PHYSICAL_UPPER_POSITION 100  //[cite: 1]
+
+/* 가상 환경에서 보관할 상태 변수들 */
+static int32_t physical_position; //
+static uint32_t motor_direction;  //[cite: 3]
+static uint32_t sil_current_raw;  //[cite: 3]
 
 void SIL_Init(void)
 {
-    /* TODO: 가상 위치, 모터 방향, ADC 전류값 초기화 */
+    physical_position = 50;           //
+    motor_direction = DIRECTION_STOP; //[cite: 3]
+    sil_current_raw = 0u;             //
 }
 
 void SIL_MotorCW(void)
 {
-    /* TODO: 가상 모터를 CW 상태로 변경 */
+    motor_direction = DIRECTION_CW;   //[cite: 3]
 }
 
 void SIL_MotorCCW(void)
 {
-    /* TODO: 가상 모터를 CCW 상태로 변경 */
+    motor_direction = DIRECTION_CCW;  //[cite: 3]
 }
 
 void SIL_MotorStop(void)
 {
-    /* TODO: 가상 모터를 STOP 상태로 변경 */
+    motor_direction = DIRECTION_STOP; //[cite: 3]
 }
 
 void SIL_Tick(void)
 {
-    /* TODO: 위치 이동, Hall 인터럽트, 전류 계산, ADC 인터럽트 구현 */
+    /* 1. 모터 위치 갱신 및 Hall 인터럽트 발생 */
+    if (motor_direction == DIRECTION_CW && physical_position < PHYSICAL_UPPER_POSITION) //[cite: 3]
+    {
+        physical_position++; //
+        EXTI6_IRQHandler();  //[cite: 1, 3]
+    }
+    else if (motor_direction == DIRECTION_CCW && physical_position > PHYSICAL_LOWER_POSITION) //[cite: 3]
+    {
+        physical_position--; //[cite: 1, 3]
+        EXTI6_IRQHandler();  //[cite: 1, 3]
+    }
+
+    /* 2. 전류값 결정 */
+    if (motor_direction == DIRECTION_STOP) //[cite: 3]
+    {
+        sil_current_raw = 0u;       //[cite: 1, 3]
+    }
+    else if (physical_position == PHYSICAL_LOWER_POSITION || physical_position == PHYSICAL_UPPER_POSITION) //[cite: 3]
+    {
+        sil_current_raw = 3200u;    //[cite: 1, 3]
+    }
+    else
+    {
+        sil_current_raw = 1500u;    //[cite: 1, 3]
+    }
+
+    /* 3. ADC 인터럽트 발생 */
+    ADC1_2_IRQHandler(); //[cite: 1, 3]
 }
 
 uint32_t SIL_ReadCurrentRaw(void)
 {
-    /* TODO: 가상 ADC 전류값 반환 */
-    return 0u;
+    return sil_current_raw; //[cite: 3]
 }
 
 int32_t SIL_GetPhysicalPosition(void)
 {
-    /* TODO: 가상 모터의 물리 위치 반환 */
-    return 0;
+    return physical_position; //[cite: 3]
 }
