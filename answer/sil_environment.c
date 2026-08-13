@@ -11,12 +11,14 @@
 static int32_t physical_position;
 static uint32_t sil_motor_direction;
 static uint32_t sil_current_raw;
+static uint32_t physical_move_count;
 
 void SIL_Init(void)
 {
     physical_position = PHYSICAL_INITIAL_POSITION;
     sil_motor_direction = DIRECTION_STOP;
     sil_current_raw = CURRENT_STOP_RAW;
+    physical_move_count = 0u;
 }
 
 void SIL_MotorCW(void)
@@ -36,17 +38,27 @@ void SIL_MotorStop(void)
 
 void SIL_Tick(void)
 {
+    int32_t previous_position = physical_position;
+
     if (sil_motor_direction == DIRECTION_CW &&
         physical_position < PHYSICAL_UPPER_POSITION)
     {
         physical_position++;
-        EXTI6_IRQHandler();
     }
     else if (sil_motor_direction == DIRECTION_CCW &&
              physical_position > PHYSICAL_LOWER_POSITION)
     {
         physical_position--;
-        EXTI6_IRQHandler();
+    }
+
+    if (physical_position != previous_position)
+    {
+        physical_move_count++;
+        if (physical_move_count >= 2u)
+        {
+            physical_move_count = 0u;
+            EXTI6_IRQHandler();
+        }
     }
 
     if (sil_motor_direction == DIRECTION_STOP)

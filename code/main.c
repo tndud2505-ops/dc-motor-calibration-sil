@@ -8,8 +8,17 @@ static void RunTicks(uint32_t count)
 
     for (tick = 0u; tick < count; tick++)
     {
+        uint32_t motor_was_running = Control_GetMotorDirection();
+
         SIL_Tick();
         Control_MainFunction();
+
+        if (motor_was_running != DIRECTION_STOP)
+        {
+            printf("moving: physical_position=%d, virtual_position=%d\n",
+                   (int)SIL_GetPhysicalPosition(),
+                   (int)Control_GetCurrentPosition());
+        }
     }
 }
 
