@@ -15,9 +15,10 @@ static void RunTicks(uint32_t count)
 
         if (motor_was_running != DIRECTION_STOP)
         {
-            printf("moving: physical_position=%d, virtual_position=%d\n",
+            printf("moving: physical_position=%d, virtual_position=%d, current_raw=%u\n",
                    (int)SIL_GetPhysicalPosition(),
-                   (int)Control_GetCurrentPosition());
+                   (int)Control_GetCurrentPosition(),
+                   Control_GetCurrentRaw());
         }
     }
 }
