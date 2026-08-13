@@ -35,7 +35,7 @@ void SIL_MotorStop(void)
 {
     sil_motor_direction = DIRECTION_STOP;
 }
-
+//
 void SIL_Tick(void)
 {
     int32_t previous_position = physical_position;

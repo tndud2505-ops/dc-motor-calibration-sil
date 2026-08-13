@@ -41,10 +41,12 @@ BINARY := dc_motor_sil
 ```make
 .PHONY: all run clean
 
-all: dc_motor_sil
-
 dc_motor_sil: code/provided_control.c code/sil_environment.c code/main.c code/sil_api.h
 	cc -std=c11 -O2 -Wall -Wextra -Werror -pedantic -Icode code/provided_control.c code/sil_environment.c code/main.c -o dc_motor_sil
+
+all: dc_motor_sil
+
+
 
 run: dc_motor_sil
 	./dc_motor_sil
