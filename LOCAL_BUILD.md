@@ -29,6 +29,8 @@ Makefile
 
 `build-local.bat` 하나가 다음 순서로 컴파일러를 찾아 직접 빌드합니다.
 
+배치 파일의 각 명령에 대한 설명은 [`BUILD_LOCAL_BAT.md`](BUILD_LOCAL_BAT.md)에서 확인할 수 있습니다.
+
 1. Windows용 `gcc`
 2. Windows용 `clang`
 3. WSL 안의 `cc`

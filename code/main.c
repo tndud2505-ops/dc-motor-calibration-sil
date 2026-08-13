@@ -8,8 +8,18 @@ static void RunTicks(uint32_t count)
 
     for (tick = 0u; tick < count; tick++)
     {
+        uint32_t motor_was_running = Control_GetMotorDirection();
+
         SIL_Tick();
         Control_MainFunction();
+
+        if (motor_was_running != DIRECTION_STOP)
+        {
+            printf("moving: physical_position=%d, virtual_position=%d, current_raw=%u\n",
+                   (int)SIL_GetPhysicalPosition(),
+                   (int)Control_GetCurrentPosition(),
+                   Control_GetCurrentRaw());
+        }
     }
 }
 
@@ -29,11 +39,22 @@ static void PrintVariables(const char *command_name)
 
 int main(void)
 {
+    uint32_t tick;
+
     SIL_Init();
     Control_Init();
 
     Control_Command(CMD_CALIBRATION);
-    RunTicks(210u);
+    for (tick = 0u; tick < 210u; tick++)
+    {
+        SIL_Tick();
+        printf("[CAL tick=%u] current_position=%d physical_position=%d current_raw=%u\n",
+               (unsigned int)(tick + 1u),
+               (int)Control_GetCurrentPosition(),
+               (int)SIL_GetPhysicalPosition(),
+               Control_GetCurrentRaw());
+        Control_MainFunction();
+    }
     PrintVariables("CALIBRATION");
 
     Control_Command(CMD_GET_OFF);

@@ -1,14 +1,28 @@
+# GitHub Actions 화면에 표시될 워크플로 이름입니다.
 name: DC motor SIL build
 
+# 이 워크플로를 언제 실행할지 정의합니다.
 on:
+  # 저장소에 push가 발생하면 실행합니다.
   push:
+  # Pull Request가 생성되거나 업데이트되면 실행합니다.
   pull_request:
+  # GitHub Actions 화면에서 수동으로 실행할 수 있게 합니다.
   workflow_dispatch:
 
+# 실행할 작업들의 묶음입니다.
 jobs:
+  # 이 작업의 내부 식별자입니다.
   build-and-run:
+    # GitHub가 제공하는 Ubuntu 최신 실행 환경에서 작업합니다.
     runs-on: ubuntu-latest
+
+    # 작업 안에서 순서대로 실행할 단계들입니다.
     steps:
+      # 현재 브랜치의 저장소 파일을 실행 환경으로 내려받습니다.
       - uses: actions/checkout@v4
+
+      # 로컬 Makefile을 사용해 C 코드를 빌드하고 실행합니다.
       - name: Build and run SIL
+        # make run은 실행 파일을 빌드한 뒤 프로그램을 실행합니다.
         run: make run

@@ -1,40 +1,89 @@
 #include "sil_api.h"
 
-/* 학생 작성 영역: 함수 원형은 유지하고 TODO를 구현합니다. */
+#define PHYSICAL_LOWER_POSITION  0
+#define PHYSICAL_UPPER_POSITION  100
+#define PHYSICAL_INITIAL_POSITION 50
+
+#define CURRENT_STOP_RAW    0u
+#define CURRENT_NORMAL_RAW  1500u
+#define CURRENT_STALL_RAW   3200u
+
+static int32_t physical_position;
+static uint32_t sil_motor_direction;
+static uint32_t sil_current_raw;
+static uint32_t physical_move_count;
 
 void SIL_Init(void)
 {
-    /* TODO: 가상 위치, 모터 방향, ADC 전류값 초기화 */
+    physical_position = PHYSICAL_INITIAL_POSITION;
+    sil_motor_direction = DIRECTION_STOP;
+    sil_current_raw = CURRENT_STOP_RAW;
+    physical_move_count = 0u;
 }
 
 void SIL_MotorCW(void)
 {
-    /* TODO: 가상 모터를 CW 상태로 변경 */
+    sil_motor_direction = DIRECTION_CW;
 }
 
 void SIL_MotorCCW(void)
 {
-    /* TODO: 가상 모터를 CCW 상태로 변경 */
+    sil_motor_direction = DIRECTION_CCW;
 }
 
 void SIL_MotorStop(void)
 {
-    /* TODO: 가상 모터를 STOP 상태로 변경 */
+    sil_motor_direction = DIRECTION_STOP;
 }
-
+//
 void SIL_Tick(void)
 {
-    /* TODO: 위치 이동, Hall 인터럽트, 전류 계산, ADC 인터럽트 구현 */
+    int32_t previous_position = physical_position;
+
+    if (sil_motor_direction == DIRECTION_CW &&
+        physical_position < PHYSICAL_UPPER_POSITION)
+    {
+        physical_position++;
+    }
+    else if (sil_motor_direction == DIRECTION_CCW &&
+             physical_position > PHYSICAL_LOWER_POSITION)
+    {
+        physical_position--;
+    }
+
+    if (physical_position != previous_position)
+    {
+        physical_move_count++;
+        if (physical_move_count >= 2u)
+        {
+            physical_move_count = 0u;
+            EXTI6_IRQHandler();
+        }
+    }
+
+    if (sil_motor_direction == DIRECTION_STOP)
+    {
+        sil_current_raw = CURRENT_STOP_RAW;
+    }
+    else if (physical_position == PHYSICAL_LOWER_POSITION ||
+             physical_position == PHYSICAL_UPPER_POSITION)
+    {
+        sil_current_raw = CURRENT_STALL_RAW;
+    }
+    else
+    {
+        sil_current_raw = CURRENT_NORMAL_RAW;
+    }
+
+    ADC1_2_IRQHandler();
 }
 
 uint32_t SIL_ReadCurrentRaw(void)
 {
-    /* TODO: 가상 ADC 전류값 반환 */
-    return 0u;
+    return sil_current_raw;
 }
 
 int32_t SIL_GetPhysicalPosition(void)
 {
-    /* TODO: 가상 모터의 물리 위치 반환 */
-    return 0;
+    return physical_position;
 }
