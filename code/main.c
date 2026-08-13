@@ -29,11 +29,22 @@ static void PrintVariables(const char *command_name)
 
 int main(void)
 {
+    uint32_t tick;
+
     SIL_Init();
     Control_Init();
 
     Control_Command(CMD_CALIBRATION);
-    RunTicks(210u);
+    for (tick = 0u; tick < 210u; tick++)
+    {
+        SIL_Tick();
+        printf("[CAL tick=%u] current_position=%d physical_position=%d current_raw=%u\n",
+               (unsigned int)(tick + 1u),
+               (int)Control_GetCurrentPosition(),
+               (int)SIL_GetPhysicalPosition(),
+               Control_GetCurrentRaw());
+        Control_MainFunction();
+    }
     PrintVariables("CALIBRATION");
 
     Control_Command(CMD_GET_OFF);
